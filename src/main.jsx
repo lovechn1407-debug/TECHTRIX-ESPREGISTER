@@ -1,0 +1,24 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
+import App from './App';
+
+// Styles (Design System, Light Mode Vanilla CSS)
+import './styles/index.css';
+import './styles/components.css';
+import './styles/client.css';
+import './styles/admin.css';
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <ToastProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ToastProvider>
+    </BrowserRouter>
+  </React.StrictMode>
+);
