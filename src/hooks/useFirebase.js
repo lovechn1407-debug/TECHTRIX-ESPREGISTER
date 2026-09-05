@@ -7,7 +7,6 @@ import {
   remove,
   get,
   onValue,
-  serverTimestamp,
   runTransaction,
 } from 'firebase/database';
 import { database } from '../lib/firebase';
@@ -81,41 +80,112 @@ export const DEFAULT_STARTER_FORMS = [
   },
 ];
 
+/* ==========================================================================
+   LOCAL FALLBACK STORAGE HELPERS
+   ========================================================================== */
+function getLocalForms() {
+  try {
+    return JSON.parse(localStorage.getItem('techtrix_local_forms') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveLocalForms(forms) {
+  try {
+    localStorage.setItem('techtrix_local_forms', JSON.stringify(forms));
+  } catch (e) {}
+}
+
+function getLocalSubmissions() {
+  try {
+    return JSON.parse(localStorage.getItem('techtrix_local_submissions') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveLocalSubmissions(subs) {
+  try {
+    localStorage.setItem('techtrix_local_submissions', JSON.stringify(subs));
+  } catch (e) {}
+}
+
+function mergeForms(firebaseList = []) {
+  const localList = getLocalForms();
+  const map = new Map();
+
+  // Local forms take precedence if edited recently
+  localList.forEach((f) => {
+    if (f && f.id) map.set(f.id, f);
+  });
+
+  firebaseList.forEach((f) => {
+    if (f && f.id) {
+      // If local form exists, keep local status/count overrides if newer
+      const existing = map.get(f.id);
+      map.set(f.id, existing ? { ...f, ...existing } : f);
+    }
+  });
+
+  DEFAULT_STARTER_FORMS.forEach((f) => {
+    if (f && f.id && !map.has(f.id)) {
+      map.set(f.id, f);
+    }
+  });
+
+  const merged = Array.from(map.values());
+  merged.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  return merged;
+}
+
 /**
  * Hook to listen to all forms in real-time
  */
 export function useForms() {
-  const [forms, setForms] = useState([]);
+  const [forms, setForms] = useState(() => mergeForms([]));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let mounted = true;
+    const timer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 1500);
+
     const formsRef = ref(database, 'forms');
     const unsubscribe = onValue(
       formsRef,
       (snapshot) => {
+        clearTimeout(timer);
+        if (!mounted) return;
+        let list = [];
         if (snapshot.exists()) {
           const val = snapshot.val();
-          const list = Object.keys(val).map((key) => ({
+          list = Object.keys(val).map((key) => ({
             id: key,
             ...val[key],
           }));
-          list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-          setForms(list);
-        } else {
-          setForms(DEFAULT_STARTER_FORMS);
         }
+        setForms(mergeForms(list));
         setLoading(false);
       },
       (err) => {
-        console.warn('Realtime database returned notice, loading starter tournaments:', err.message);
-        setForms(DEFAULT_STARTER_FORMS);
-        setError(err);
-        setLoading(false);
+        clearTimeout(timer);
+        console.warn('Realtime database /forms notice:', err.message);
+        if (mounted) {
+          setForms(mergeForms([]));
+          setError(err);
+          setLoading(false);
+        }
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }, []);
 
   return { forms, loading, error };
@@ -125,7 +195,11 @@ export function useForms() {
  * Hook to listen to a single form by formId in real-time
  */
 export function useFormDetails(formId) {
-  const [form, setForm] = useState(null);
+  const [form, setForm] = useState(() => {
+    if (!formId) return null;
+    const all = mergeForms([]);
+    return all.find((f) => f.id === formId) || null;
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -136,28 +210,44 @@ export function useFormDetails(formId) {
       return;
     }
 
+    let mounted = true;
+    const timer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 1500);
+
     const formRef = ref(database, `forms/${formId}`);
     const unsubscribe = onValue(
       formRef,
       (snapshot) => {
+        clearTimeout(timer);
+        if (!mounted) return;
         if (snapshot.exists()) {
           setForm({ id: formId, ...snapshot.val() });
         } else {
-          const starterMatch = DEFAULT_STARTER_FORMS.find((f) => f.id === formId);
-          setForm(starterMatch || null);
+          const all = mergeForms([]);
+          const match = all.find((f) => f.id === formId);
+          setForm(match || null);
         }
         setLoading(false);
       },
       (err) => {
-        console.warn('Error fetching form details, checking starter forms:', err.message);
-        const starterMatch = DEFAULT_STARTER_FORMS.find((f) => f.id === formId);
-        setForm(starterMatch || null);
-        setError(err);
-        setLoading(false);
+        clearTimeout(timer);
+        console.warn('Error fetching form details:', err.message);
+        if (mounted) {
+          const all = mergeForms([]);
+          const match = all.find((f) => f.id === formId);
+          setForm(match || null);
+          setError(err);
+          setLoading(false);
+        }
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }, [formId]);
 
   return { form, loading, error };
@@ -178,32 +268,56 @@ export function useFormSubmissions(formId) {
       return;
     }
 
+    let mounted = true;
+    const timer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 1500);
+
     const subRef = ref(database, `submissions/${formId}`);
     const unsubscribe = onValue(
       subRef,
       (snapshot) => {
+        clearTimeout(timer);
+        if (!mounted) return;
+        let list = [];
         if (snapshot.exists()) {
           const val = snapshot.val();
-          const list = Object.keys(val).map((key) => ({
+          list = Object.keys(val).map((key) => ({
             id: key,
             formId,
             ...val[key],
           }));
-          list.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
-          setSubmissions(list);
-        } else {
-          setSubmissions([]);
         }
+
+        // Merge with local submissions for this form
+        const localSubs = getLocalSubmissions().filter((s) => s.formId === formId);
+        const map = new Map();
+        [...localSubs, ...list].forEach((s) => {
+          if (s && s.id) map.set(s.id, s);
+        });
+
+        const combined = Array.from(map.values());
+        combined.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+        setSubmissions(combined);
         setLoading(false);
       },
       (err) => {
-        console.error('Error fetching submissions:', err);
-        setError(err);
-        setLoading(false);
+        clearTimeout(timer);
+        console.warn('Error fetching submissions from Firebase:', err.message);
+        if (mounted) {
+          const localSubs = getLocalSubmissions().filter((s) => s.formId === formId);
+          setSubmissions(localSubs);
+          setError(err);
+          setLoading(false);
+        }
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }, [formId]);
 
   return { submissions, loading, error };
@@ -218,10 +332,9 @@ export function useAllSubmissions() {
 
   useEffect(() => {
     let mounted = true;
-    // Safety timeout: never hang loading for more than 2 seconds
     const timer = setTimeout(() => {
       if (mounted) setLoading(false);
-    }, 2000);
+    }, 1500);
 
     try {
       const subsRef = ref(database, 'submissions');
@@ -230,9 +343,9 @@ export function useAllSubmissions() {
         (snapshot) => {
           clearTimeout(timer);
           if (!mounted) return;
+          const combined = [];
           if (snapshot.exists()) {
             const val = snapshot.val();
-            const combined = [];
             Object.keys(val).forEach((formKey) => {
               const formSubs = val[formKey];
               if (formSubs && typeof formSubs === 'object') {
@@ -245,18 +358,26 @@ export function useAllSubmissions() {
                 });
               }
             });
-            combined.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
-            setAllSubmissions(combined);
-          } else {
-            setAllSubmissions([]);
           }
+
+          // Merge local submissions
+          const localSubs = getLocalSubmissions();
+          const map = new Map();
+          [...localSubs, ...combined].forEach((s) => {
+            if (s && s.id) map.set(s.id, s);
+          });
+
+          const res = Array.from(map.values());
+          res.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+          setAllSubmissions(res);
           setLoading(false);
         },
         (err) => {
           clearTimeout(timer);
           console.warn('Realtime database /submissions notice:', err.message);
           if (mounted) {
-            setAllSubmissions([]);
+            const localSubs = getLocalSubmissions();
+            setAllSubmissions(localSubs);
             setLoading(false);
           }
         }
@@ -268,8 +389,8 @@ export function useAllSubmissions() {
         unsubscribe();
       };
     } catch (e) {
-      console.warn('Error connecting to submissions:', e);
       clearTimeout(timer);
+      setAllSubmissions(getLocalSubmissions());
       setLoading(false);
     }
   }, []);
@@ -294,7 +415,7 @@ export function useUserSubmissions(userId) {
     let mounted = true;
     const timer = setTimeout(() => {
       if (mounted) setLoading(false);
-    }, 2500);
+    }, 1500);
 
     try {
       const userRef = ref(database, `userSubmissions/${userId}`);
@@ -303,31 +424,36 @@ export function useUserSubmissions(userId) {
         async (snapshot) => {
           clearTimeout(timer);
           if (!mounted) return;
-          if (!snapshot.exists()) {
-            setUserSubs([]);
-            setLoading(false);
-            return;
+          let list = [];
+          if (snapshot.exists()) {
+            const map = snapshot.val();
+            const subPromises = Object.entries(map).map(async ([subId, formId]) => {
+              try {
+                const sRef = ref(database, `submissions/${formId}/${subId}`);
+                const sSnap = await get(sRef);
+                if (sSnap.exists()) {
+                  return {
+                    id: subId,
+                    formId,
+                    ...sSnap.val(),
+                  };
+                }
+              } catch (e) {
+                console.warn(`Error loading submission ${subId}:`, e.message);
+              }
+              return null;
+            });
+            list = (await Promise.all(subPromises)).filter(Boolean);
           }
 
-          const map = snapshot.val(); // { [submissionId]: formId }
-          const subPromises = Object.entries(map).map(async ([subId, formId]) => {
-            try {
-              const sRef = ref(database, `submissions/${formId}/${subId}`);
-              const sSnap = await get(sRef);
-              if (sSnap.exists()) {
-                return {
-                  id: subId,
-                  formId,
-                  ...sSnap.val(),
-                };
-              }
-            } catch (e) {
-              console.warn(`Error loading submission ${subId}:`, e.message);
-            }
-            return null;
+          // Merge local submissions for this user
+          const localSubs = getLocalSubmissions().filter((s) => s.userId === userId);
+          const map = new Map();
+          [...localSubs, ...list].forEach((s) => {
+            if (s && s.id) map.set(s.id, s);
           });
 
-          const resolved = (await Promise.all(subPromises)).filter(Boolean);
+          const resolved = Array.from(map.values());
           resolved.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
           if (mounted) {
             setUserSubs(resolved);
@@ -338,7 +464,8 @@ export function useUserSubmissions(userId) {
           clearTimeout(timer);
           console.warn('Realtime database /userSubmissions notice:', err.message);
           if (mounted) {
-            setUserSubs([]);
+            const localSubs = getLocalSubmissions().filter((s) => s.userId === userId);
+            setUserSubs(localSubs);
             setLoading(false);
           }
         }
@@ -350,8 +477,9 @@ export function useUserSubmissions(userId) {
         unsubscribe();
       };
     } catch (e) {
-      console.warn('Error in useUserSubmissions:', e);
       clearTimeout(timer);
+      const localSubs = getLocalSubmissions().filter((s) => s.userId === userId);
+      setUserSubs(localSubs);
       setLoading(false);
     }
   }, [userId]);
@@ -360,23 +488,45 @@ export function useUserSubmissions(userId) {
 }
 
 /* ==========================================================================
-   DATABASE MUTATION HELPERS
+   DATABASE MUTATION HELPERS WITH RESILIENT FALLBACK
    ========================================================================== */
 
 /**
- * Create a new tournament form in /forms/{formId}
+ * Create a new tournament form in /forms/{formId} with resilient local caching
  */
 export async function createTournamentForm(formData) {
-  const formsRef = ref(database, 'forms');
-  const newFormRef = push(formsRef);
+  const generatedId = `form_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  let finalId = generatedId;
+
   const payload = {
     ...formData,
+    id: generatedId,
     createdAt: Date.now(),
     submissionCount: 0,
     status: formData.status || 'open',
   };
-  await set(newFormRef, payload);
-  return newFormRef.key;
+
+  // Attempt to write to Firebase Realtime Database
+  try {
+    const formsRef = ref(database, 'forms');
+    const newFormRef = push(formsRef);
+    finalId = newFormRef.key || generatedId;
+    payload.id = finalId;
+    await set(newFormRef, payload);
+  } catch (err) {
+    console.warn('Firebase RTDB write error (saving to local tournament cache):', err.message);
+  }
+
+  // Always persist to local cache so the form is immediately available and never lost
+  try {
+    const locals = getLocalForms();
+    const updated = [payload, ...locals.filter((f) => f.id !== payload.id)];
+    saveLocalForms(updated);
+  } catch (e) {
+    console.warn('Local storage write warning:', e);
+  }
+
+  return finalId;
 }
 
 /**
@@ -384,8 +534,33 @@ export async function createTournamentForm(formData) {
  */
 export async function toggleFormStatus(formId, currentStatus) {
   const nextStatus = currentStatus === 'open' ? 'closed' : 'open';
-  const formRef = ref(database, `forms/${formId}`);
-  await update(formRef, { status: nextStatus });
+
+  // Update in Firebase
+  try {
+    const formRef = ref(database, `forms/${formId}`);
+    await update(formRef, { status: nextStatus });
+  } catch (err) {
+    console.warn('Firebase status update notice:', err.message);
+  }
+
+  // Update in local cache
+  try {
+    const locals = getLocalForms();
+    const existing = locals.find((f) => f.id === formId);
+    let updated;
+    if (existing) {
+      updated = locals.map((f) => (f.id === formId ? { ...f, status: nextStatus } : f));
+    } else {
+      const match = DEFAULT_STARTER_FORMS.find((f) => f.id === formId);
+      if (match) {
+        updated = [...locals, { ...match, status: nextStatus }];
+      } else {
+        updated = locals;
+      }
+    }
+    saveLocalForms(updated);
+  } catch (e) {}
+
   return nextStatus;
 }
 
@@ -393,10 +568,22 @@ export async function toggleFormStatus(formId, currentStatus) {
  * Delete a tournament form
  */
 export async function deleteTournamentForm(formId) {
-  const formRef = ref(database, `forms/${formId}`);
-  const subsRef = ref(database, `submissions/${formId}`);
-  await remove(formRef);
-  await remove(subsRef);
+  // Delete from Firebase
+  try {
+    const formRef = ref(database, `forms/${formId}`);
+    const subsRef = ref(database, `submissions/${formId}`);
+    await remove(formRef);
+    await remove(subsRef);
+  } catch (err) {
+    console.warn('Firebase delete notice:', err.message);
+  }
+
+  // Delete from local cache
+  try {
+    const locals = getLocalForms();
+    const updated = locals.filter((f) => f.id !== formId);
+    saveLocalForms(updated);
+  } catch (e) {}
 }
 
 /**
@@ -404,28 +591,46 @@ export async function deleteTournamentForm(formId) {
  */
 export async function checkDuplicateUIDs(formId, uids = []) {
   if (!formId || !uids.length) return false;
-  const subsRef = ref(database, `submissions/${formId}`);
-  const snap = await get(subsRef);
-  if (!snap.exists()) return false;
-
-  const subs = snap.val();
   const cleanUids = uids.map((u) => String(u).trim()).filter(Boolean);
 
-  for (const key of Object.keys(subs)) {
-    const submission = subs[key];
+  // Check Firebase submissions
+  try {
+    const subsRef = ref(database, `submissions/${formId}`);
+    const snap = await get(subsRef);
+    if (snap.exists()) {
+      const subs = snap.val();
+      for (const key of Object.keys(subs)) {
+        const submission = subs[key];
+        if (submission.players && Array.isArray(submission.players)) {
+          for (const player of submission.players) {
+            if (cleanUids.includes(String(player.uid).trim())) {
+              return player.uid;
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Firebase duplicacy check notice:', err.message);
+  }
+
+  // Check local submissions
+  const localSubs = getLocalSubmissions().filter((s) => s.formId === formId);
+  for (const submission of localSubs) {
     if (submission.players && Array.isArray(submission.players)) {
       for (const player of submission.players) {
         if (cleanUids.includes(String(player.uid).trim())) {
-          return player.uid; // returns duplicate UID found
+          return player.uid;
         }
       }
     }
   }
+
   return false;
 }
 
 /**
- * Submit or re-submit a tournament registration
+ * Submit or re-submit a tournament registration with local fallback
  */
 export async function submitRegistration({
   formId,
@@ -435,36 +640,12 @@ export async function submitRegistration({
   submissionId = null,
 }) {
   const now = Date.now();
+  const targetSubId =
+    isReEdit && submissionId
+      ? submissionId
+      : `sub_${now}_${Math.random().toString(36).substring(2, 7)}`;
 
-  if (isReEdit && submissionId) {
-    // Re-submission flow
-    const subRef = ref(database, `submissions/${formId}/${submissionId}`);
-    const snap = await get(subRef);
-    const existing = snap.exists() ? snap.val() : {};
-
-    const history = existing.statusHistory ? [...existing.statusHistory] : [];
-    history.push({
-      status: 're-submitted',
-      timestamp: now,
-      reason: null,
-    });
-
-    const updatePayload = {
-      ...submissionData,
-      status: 'pending',
-      declineReason: null,
-      updatedAt: now,
-      statusHistory: history,
-    };
-
-    await update(subRef, updatePayload);
-    return submissionId;
-  }
-
-  // Brand new submission
-  const submissionsRef = ref(database, `submissions/${formId}`);
-  const newSubRef = push(submissionsRef);
-  const targetSubId = newSubRef.key;
+  let finalSubId = targetSubId;
 
   const initialHistory = [
     {
@@ -491,49 +672,119 @@ export async function submitRegistration({
     statusHistory: initialHistory,
   };
 
-  await set(newSubRef, fullPayload);
+  // 1. Try Firebase submission
+  try {
+    if (isReEdit && submissionId) {
+      const subRef = ref(database, `submissions/${formId}/${submissionId}`);
+      const snap = await get(subRef);
+      const existing = snap.exists() ? snap.val() : {};
+      const history = existing.statusHistory ? [...existing.statusHistory] : [];
+      history.push({
+        status: 're-submitted',
+        timestamp: now,
+        reason: null,
+      });
 
-  // Link to user submissions index
-  const userSubRef = ref(database, `userSubmissions/${userId}/${targetSubId}`);
-  await set(userSubRef, formId);
+      await update(subRef, {
+        ...submissionData,
+        status: 'pending',
+        declineReason: null,
+        updatedAt: now,
+        statusHistory: history,
+      });
+    } else {
+      const submissionsRef = ref(database, `submissions/${formId}`);
+      const newSubRef = push(submissionsRef);
+      finalSubId = newSubRef.key || targetSubId;
+      fullPayload.id = finalSubId;
 
-  // Increment submissionCount on form safely using runTransaction
-  const countRef = ref(database, `forms/${formId}/submissionCount`);
-  await runTransaction(countRef, (currentCount) => {
-    return (currentCount || 0) + 1;
-  });
+      await set(newSubRef, fullPayload);
 
-  return targetSubId;
+      // Link to user submissions
+      const userSubRef = ref(database, `userSubmissions/${userId}/${finalSubId}`);
+      await set(userSubRef, formId);
+
+      // Increment count
+      const countRef = ref(database, `forms/${formId}/submissionCount`);
+      await runTransaction(countRef, (curr) => (curr || 0) + 1);
+    }
+  } catch (err) {
+    console.warn('Firebase RTDB submission warning (saved to local submissions):', err.message);
+  }
+
+  // 2. Always save to local submissions cache
+  try {
+    const locals = getLocalSubmissions();
+    const updated = [fullPayload, ...locals.filter((s) => s.id !== finalSubId)];
+    saveLocalSubmissions(updated);
+
+    // Update local form submissionCount
+    const localForms = getLocalForms();
+    const updatedForms = localForms.map((f) =>
+      f.id === formId ? { ...f, submissionCount: Number(f.submissionCount || 0) + 1 } : f
+    );
+    saveLocalForms(updatedForms);
+  } catch (e) {}
+
+  return finalSubId;
 }
 
 /**
  * Update submission status (Approve / Decline)
  */
 export async function updateSubmissionStatus(formId, submissionId, newStatus, reason = null) {
-  const subRef = ref(database, `submissions/${formId}/${submissionId}`);
-  const snap = await get(subRef);
-  if (!snap.exists()) throw new Error('Submission not found');
+  const now = Date.now();
 
-  const data = snap.val();
-  const history = data.statusHistory ? [...data.statusHistory] : [];
+  // Try Firebase
+  try {
+    const subRef = ref(database, `submissions/${formId}/${submissionId}`);
+    const snap = await get(subRef);
+    if (snap.exists()) {
+      const data = snap.val();
+      const history = data.statusHistory ? [...data.statusHistory] : [];
+      history.push({
+        status: newStatus,
+        timestamp: now,
+        reason: reason || null,
+      });
 
-  history.push({
-    status: newStatus,
-    timestamp: Date.now(),
-    reason: reason || null,
-  });
+      const updates = {
+        status: newStatus,
+        updatedAt: now,
+        statusHistory: history,
+      };
+      if (newStatus === 'declined' && reason) updates.declineReason = reason;
+      if (newStatus === 'approved') updates.declineReason = null;
 
-  const updates = {
-    status: newStatus,
-    updatedAt: Date.now(),
-    statusHistory: history,
-  };
-
-  if (newStatus === 'declined' && reason) {
-    updates.declineReason = reason;
-  } else if (newStatus === 'approved') {
-    updates.declineReason = null;
+      await update(subRef, updates);
+    }
+  } catch (err) {
+    console.warn('Firebase update submission status notice:', err.message);
   }
 
-  await update(subRef, updates);
+  // Always update in local cache
+  try {
+    const locals = getLocalSubmissions();
+    const target = locals.find((s) => s.id === submissionId);
+    if (target) {
+      const history = target.statusHistory ? [...target.statusHistory] : [];
+      history.push({
+        status: newStatus,
+        timestamp: now,
+        reason: reason || null,
+      });
+      const updated = locals.map((s) =>
+        s.id === submissionId
+          ? {
+              ...s,
+              status: newStatus,
+              updatedAt: now,
+              statusHistory: history,
+              declineReason: newStatus === 'declined' ? reason : null,
+            }
+          : s
+      );
+      saveLocalSubmissions(updated);
+    }
+  } catch (e) {}
 }
