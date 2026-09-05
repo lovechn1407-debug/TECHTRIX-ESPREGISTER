@@ -12,8 +12,8 @@ export function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const { adminLogin } = useAuth();
-  const { showSuccess } = useToast();
+  const { adminLogin, adminGoogleLogin } = useAuth();
+  const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -34,6 +34,21 @@ export function AdminLogin() {
       } else {
         setError(err.message || 'Failed to authenticate administrator.');
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleAdminLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await adminGoogleLogin();
+      showSuccess('Administrator session authenticated via Google.', 'Welcome Admin');
+      navigate('/admin');
+    } catch (err) {
+      console.error('Admin Google login error:', err);
+      setError(err.message || 'Failed to authenticate via Google.');
     } finally {
       setLoading(false);
     }
@@ -104,9 +119,28 @@ export function AdminLogin() {
             loading={loading}
             icon={Lock}
           >
-            Sign In to Admin
+            Sign In with Email
           </Button>
         </form>
+
+        <div style={{ margin: '1.25rem 0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+            Or
+          </span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+        </div>
+
+        <Button
+          type="button"
+          variant="secondary"
+          size="md"
+          fullWidth
+          loading={loading}
+          onClick={handleGoogleAdminLogin}
+        >
+          Sign In with Google (Admin)
+        </Button>
 
         <div
           style={{
@@ -154,7 +188,12 @@ export function AdminLogin() {
         >
           <Info size={16} color="var(--primary)" style={{ flexShrink: 0, marginTop: '1px' }} />
           <div>
-            <strong>Admin Access Policy:</strong> Administrator accounts must be registered in Firebase Authentication and authorized in the Realtime Database under <code>/admins/&#123;uid&#125;: true</code>.
+            <div>
+              <strong>Authorized Admin UID:</strong> <code style={{ wordBreak: 'break-all', color: 'var(--primary)' }}>gseLqYB6grVcqGLJvO8UA2q96d42</code>
+            </div>
+            <div style={{ marginTop: '0.25rem', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+              Configured in database and authorized for full control panel access.
+            </div>
           </div>
         </div>
       </div>

@@ -10,14 +10,26 @@ import { auth, googleProvider, database } from '../lib/firebase';
 
 const AuthContext = createContext(null);
 
+export const CONFIGURED_ADMIN_UIDS = [
+  'gseLqYB6grVcqGLJvO8UA2q96d42',
+];
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Check if UID is listed in /admins/{uid}
+  // Check if UID is listed in /admins/{uid} or configured list
   const checkAdminPrivilege = async (uid) => {
     if (!uid) return false;
+    if (CONFIGURED_ADMIN_UIDS.includes(uid)) {
+      // Also ensure it is persisted in the database
+      try {
+        const adminRef = ref(database, `admins/${uid}`);
+        set(adminRef, true).catch(() => {});
+      } catch (e) {}
+      return true;
+    }
     try {
       const adminRef = ref(database, `admins/${uid}`);
       const snapshot = await get(adminRef);
@@ -79,6 +91,28 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Admin Google Sign-In option
+  const adminGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const isAuthorized = await checkAdminPrivilege(result.user.uid);
+      if (!isAuthorized) {
+        await signOut(auth);
+        setUser(null);
+        setIsAdmin(false);
+        const err = new Error(`Access Denied: Your Google account (${result.user.email || result.user.uid}) is not authorized as an administrator.`);
+        err.code = 'auth/unauthorized-admin';
+        throw err;
+      }
+      setUser(result.user);
+      setIsAdmin(true);
+      return result.user;
+    } catch (error) {
+      console.error('Admin Google Login failed:', error);
+      throw error;
+    }
+  };
+
   // Sign out
   const logout = async () => {
     try {
@@ -99,6 +133,7 @@ export function AuthProvider({ children }) {
         loading,
         loginWithGoogle,
         adminLogin,
+        adminGoogleLogin,
         logout,
       }}
     >
