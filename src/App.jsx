@@ -5,6 +5,7 @@ import AdminLayout from './components/layout/AdminLayout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AdminProtectedRoute from './components/common/AdminProtectedRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import ScrollToTop from './components/common/ScrollToTop';
 
 // Client Pages
 import Home from './features/client/Home';
@@ -22,6 +23,7 @@ import FormSubmissions from './features/admin/FormSubmissions';
 export function App() {
   return (
     <ErrorBoundary>
+      <ScrollToTop />
       <Routes>
         {/* Client Routes */}
         <Route path="/" element={<ClientLayout />}>
