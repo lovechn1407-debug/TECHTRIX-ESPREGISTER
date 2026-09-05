@@ -217,30 +217,61 @@ export function useAllSubmissions() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const subsRef = ref(database, 'submissions');
-    const unsubscribe = onValue(subsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const val = snapshot.val();
-        const combined = [];
-        Object.keys(val).forEach((formKey) => {
-          const formSubs = val[formKey];
-          Object.keys(formSubs).forEach((subKey) => {
-            combined.push({
-              id: subKey,
-              formId: formKey,
-              ...formSubs[subKey],
-            });
-          });
-        });
-        combined.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
-        setAllSubmissions(combined);
-      } else {
-        setAllSubmissions([]);
-      }
-      setLoading(false);
-    });
+    let mounted = true;
+    // Safety timeout: never hang loading for more than 2 seconds
+    const timer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 2000);
 
-    return () => unsubscribe();
+    try {
+      const subsRef = ref(database, 'submissions');
+      const unsubscribe = onValue(
+        subsRef,
+        (snapshot) => {
+          clearTimeout(timer);
+          if (!mounted) return;
+          if (snapshot.exists()) {
+            const val = snapshot.val();
+            const combined = [];
+            Object.keys(val).forEach((formKey) => {
+              const formSubs = val[formKey];
+              if (formSubs && typeof formSubs === 'object') {
+                Object.keys(formSubs).forEach((subKey) => {
+                  combined.push({
+                    id: subKey,
+                    formId: formKey,
+                    ...formSubs[subKey],
+                  });
+                });
+              }
+            });
+            combined.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+            setAllSubmissions(combined);
+          } else {
+            setAllSubmissions([]);
+          }
+          setLoading(false);
+        },
+        (err) => {
+          clearTimeout(timer);
+          console.warn('Realtime database /submissions notice:', err.message);
+          if (mounted) {
+            setAllSubmissions([]);
+            setLoading(false);
+          }
+        }
+      );
+
+      return () => {
+        mounted = false;
+        clearTimeout(timer);
+        unsubscribe();
+      };
+    } catch (e) {
+      console.warn('Error connecting to submissions:', e);
+      clearTimeout(timer);
+      setLoading(false);
+    }
   }, []);
 
   return { allSubmissions, loading };
@@ -260,39 +291,69 @@ export function useUserSubmissions(userId) {
       return;
     }
 
-    const userRef = ref(database, `userSubmissions/${userId}`);
-    const unsubscribe = onValue(userRef, async (snapshot) => {
-      if (!snapshot.exists()) {
-        setUserSubs([]);
-        setLoading(false);
-        return;
-      }
+    let mounted = true;
+    const timer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 2500);
 
-      const map = snapshot.val(); // { [submissionId]: formId }
-      const subPromises = Object.entries(map).map(async ([subId, formId]) => {
-        try {
-          const sRef = ref(database, `submissions/${formId}/${subId}`);
-          const sSnap = await get(sRef);
-          if (sSnap.exists()) {
-            return {
-              id: subId,
-              formId,
-              ...sSnap.val(),
-            };
+    try {
+      const userRef = ref(database, `userSubmissions/${userId}`);
+      const unsubscribe = onValue(
+        userRef,
+        async (snapshot) => {
+          clearTimeout(timer);
+          if (!mounted) return;
+          if (!snapshot.exists()) {
+            setUserSubs([]);
+            setLoading(false);
+            return;
           }
-        } catch (e) {
-          console.error(`Error loading submission ${subId}:`, e);
+
+          const map = snapshot.val(); // { [submissionId]: formId }
+          const subPromises = Object.entries(map).map(async ([subId, formId]) => {
+            try {
+              const sRef = ref(database, `submissions/${formId}/${subId}`);
+              const sSnap = await get(sRef);
+              if (sSnap.exists()) {
+                return {
+                  id: subId,
+                  formId,
+                  ...sSnap.val(),
+                };
+              }
+            } catch (e) {
+              console.warn(`Error loading submission ${subId}:`, e.message);
+            }
+            return null;
+          });
+
+          const resolved = (await Promise.all(subPromises)).filter(Boolean);
+          resolved.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+          if (mounted) {
+            setUserSubs(resolved);
+            setLoading(false);
+          }
+        },
+        (err) => {
+          clearTimeout(timer);
+          console.warn('Realtime database /userSubmissions notice:', err.message);
+          if (mounted) {
+            setUserSubs([]);
+            setLoading(false);
+          }
         }
-        return null;
-      });
+      );
 
-      const resolved = (await Promise.all(subPromises)).filter(Boolean);
-      resolved.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
-      setUserSubs(resolved);
+      return () => {
+        mounted = false;
+        clearTimeout(timer);
+        unsubscribe();
+      };
+    } catch (e) {
+      console.warn('Error in useUserSubmissions:', e);
+      clearTimeout(timer);
       setLoading(false);
-    });
-
-    return () => unsubscribe();
+    }
   }, [userId]);
 
   return { userSubs, loading };

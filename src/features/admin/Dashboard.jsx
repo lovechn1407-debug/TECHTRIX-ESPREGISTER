@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -24,7 +24,15 @@ export function Dashboard() {
   const { forms, loading: formsLoading } = useForms();
   const { allSubmissions, loading: subsLoading } = useAllSubmissions();
 
-  const loading = formsLoading || subsLoading;
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTimedOut(true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const loading = (formsLoading || subsLoading) && !timedOut;
 
   // Calculate statistics
   const totalRegistrations = allSubmissions.length;
