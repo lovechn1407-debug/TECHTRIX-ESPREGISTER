@@ -179,16 +179,18 @@ export function CheckStatus() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                paddingBottom: '1rem',
+                paddingBottom: '0.75rem',
                 borderBottom: '1px solid var(--border)',
-                marginBottom: '1.25rem',
+                marginBottom: '1rem',
+                flexWrap: 'wrap',
+                gap: '0.5rem',
               }}
             >
               <div>
-                <h3 style={{ fontSize: '1.2rem' }}>
+                <h3 style={{ fontSize: '1.1rem', wordBreak: 'break-word' }}>
                   {selectedSub.teamName || selectedSub.players?.[0]?.nickname}
                 </h3>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                   Submitted on {formatDateTime(selectedSub.submittedAt)}
                 </span>
               </div>
@@ -201,7 +203,7 @@ export function CheckStatus() {
 
             {/* Vertical Timeline */}
             <div>
-              <h4 style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+              <h4 style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
                 Status Progression
               </h4>
               <Timeline
@@ -211,11 +213,11 @@ export function CheckStatus() {
             </div>
 
             {/* Players Roster */}
-            <div style={{ marginTop: '1.75rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
-              <h4 style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.85rem' }}>
+            <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+              <h4 style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
                 Registered Players ({selectedSub.players?.length || 0})
               </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 {selectedSub.players?.map((pl, idx) => (
                   <div
                     key={idx}
@@ -223,27 +225,27 @@ export function CheckStatus() {
                       background: '#FAFBFF',
                       border: '1px solid var(--border)',
                       borderRadius: 'var(--radius-md)',
-                      padding: '0.75rem 1rem',
+                      padding: '0.65rem 0.85rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       flexWrap: 'wrap',
-                      gap: '0.5rem',
+                      gap: '0.45rem',
                     }}
                   >
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>
                         {pl.nickname}{' '}
-                        <span className="tag-mono" style={{ fontSize: '0.75rem', marginLeft: '0.35rem' }}>
+                        <span className="tag-mono" style={{ fontSize: '0.72rem', marginLeft: '0.35rem' }}>
                           UID: {pl.uid}
                         </span>
                       </div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
                         Level {pl.level} | Rank: {pl.rank} ({pl.rankPoints} pts)
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                         {formatWhatsApp(pl.whatsapp)}
                       </span>
                       {pl.apiVerified && (

@@ -20,8 +20,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 72px;
-  padding: 0 1.5rem;
+  height: 64px;
+  padding: 0 1.25rem;
   max-width: 1280px;
   margin: 0 auto;
 }
@@ -29,17 +29,17 @@
 .brand-logo {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.6rem;
   text-decoration: none;
   font-family: var(--font-heading);
-  font-size: 1.45rem;
+  font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .brand-icon-box {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-md);
   background: var(--hero-gradient);
   display: flex;
@@ -47,6 +47,25 @@
   justify-content: center;
   color: #FFFFFF;
   box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+}
+
+@media (max-width: 640px) {
+  .header-container {
+    height: 56px;
+    padding: 0 0.85rem;
+  }
+  .brand-logo {
+    font-size: 1.15rem;
+    gap: 0.45rem;
+  }
+  .brand-icon-box {
+    width: 30px;
+    height: 30px;
+  }
+  .brand-icon-box svg {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .client-nav {
@@ -323,9 +342,17 @@
 @media (max-width: 640px) {
   .tournaments-grid {
     grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  .hero-section {
+    padding: 3rem 1rem;
   }
   .hero-title {
-    font-size: 2.15rem;
+    font-size: 1.75rem;
+  }
+  .hero-subtitle {
+    font-size: 0.92rem;
+    margin-bottom: 1.5rem;
   }
 }
 
@@ -580,27 +607,27 @@
    STATUS & TIMELINE PAGE
    ========================================================================== */
 .status-page-header {
-  padding: 2.5rem 0 1.5rem 0;
+  padding: 1.75rem 0 1.25rem 0;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
 }
 
 .submissions-user-list {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .submission-item-card {
   background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 1.5rem;
+  padding: 1.25rem 1.35rem;
   box-shadow: var(--shadow-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
+  gap: 1.25rem;
   cursor: pointer;
   transition: all var(--transition-normal);
 }
@@ -612,8 +639,23 @@
 }
 
 @media (max-width: 680px) {
+  .status-page-header {
+    padding: 1.25rem 0 0.85rem 0;
+    margin-bottom: 1.25rem;
+  }
+  .status-page-header h1 {
+    font-size: 1.45rem !important;
+  }
+  .status-page-header p {
+    font-size: 0.82rem;
+  }
   .submission-item-card {
     flex-direction: column;
     align-items: flex-start;
+    padding: 1rem;
+    gap: 0.85rem;
+  }
+  .submission-item-card h3 {
+    font-size: 1.05rem;
   }
 }

@@ -60,8 +60,8 @@
 
   /* Z-Index */
   --z-sticky: 100;
-  --z-modal: 1000;
-  --z-toast: 2000;
+  --z-modal: 99999;
+  --z-toast: 100000;
 }
 
 /* Resets and Base */
@@ -72,16 +72,28 @@
 }
 
 html {
-  font-size: 16px;
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
 }
 
+@media (max-width: 768px) {
+  html {
+    font-size: 13.5px;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 12.5px;
+  }
+}
+
 body {
   font-family: var(--font-body);
-  font-size: 0.95rem;
-  line-height: 1.55;
+  font-size: 0.9rem;
+  line-height: 1.5;
   color: var(--text-primary);
   background-color: var(--bg);
   min-height: 100vh;
@@ -95,12 +107,28 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
 }
 
-h1 { font-size: 2.25rem; }
-h2 { font-size: 1.75rem; }
-h3 { font-size: 1.35rem; }
-h4 { font-size: 1.15rem; }
-h5 { font-size: 1rem; }
-h6 { font-size: 0.875rem; }
+h1 { font-size: 1.95rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.2rem; }
+h4 { font-size: 1.02rem; }
+h5 { font-size: 0.9rem; }
+h6 { font-size: 0.8rem; }
+
+@media (max-width: 768px) {
+  h1 { font-size: 1.55rem; }
+  h2 { font-size: 1.28rem; }
+  h3 { font-size: 1.08rem; }
+  h4 { font-size: 0.92rem; }
+  h5 { font-size: 0.85rem; }
+  h6 { font-size: 0.78rem; }
+}
+
+@media (max-width: 480px) {
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.18rem; }
+  h3 { font-size: 1rem; }
+  h4 { font-size: 0.88rem; }
+}
 
 p {
   color: var(--text-secondary);
@@ -135,8 +163,8 @@ code, kbd, samp, pre {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes slideDown {

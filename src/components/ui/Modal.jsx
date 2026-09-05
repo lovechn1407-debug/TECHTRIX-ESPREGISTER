@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export function Modal({
@@ -28,7 +29,7 @@ export function Modal({
 
   if (!isOpen) return null;
 
-  return (
+  const modalElement = (
     <div
       className="modal-overlay"
       onClick={closeOnOverlayClick ? onClose : undefined}
@@ -48,7 +49,7 @@ export function Modal({
             onClick={onClose}
             aria-label="Close dialog"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
         <div className="modal-content">{children}</div>
@@ -56,6 +57,10 @@ export function Modal({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalElement, document.body)
+    : modalElement;
 }
 
 export default Modal;

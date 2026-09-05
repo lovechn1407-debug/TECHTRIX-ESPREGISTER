@@ -457,11 +457,8 @@
    ========================================================================== */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.45);
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -479,18 +476,31 @@
   box-shadow: var(--shadow-elevated);
   width: 100%;
   max-width: 580px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: calc(100vh - 2.5rem);
+  max-height: calc(100dvh - 2.5rem);
+  display: flex;
+  flex-direction: column;
   position: relative;
+  overflow: hidden;
   animation: slideDown 0.25s ease-out;
 }
 
 .modal-header {
-  padding: 1.25rem 1.5rem;
+  padding: 1rem 1.35rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: #FFFFFF;
+  z-index: 2;
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .modal-close-btn {
@@ -512,19 +522,54 @@
 }
 
 .modal-content {
-  padding: 1.5rem;
+  padding: 1.25rem 1.35rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-footer {
-  padding: 1.25rem 1.5rem;
+  padding: 0.85rem 1.35rem;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
   background: #FAFBFF;
-  border-bottom-left-radius: var(--radius-xl);
-  border-bottom-right-radius: var(--radius-xl);
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 0.5rem 0.5rem 0 0.5rem;
+    align-items: flex-end;
+  }
+
+  .modal-container {
+    max-height: 92vh;
+    max-height: 92dvh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    width: 100%;
+    margin: 0;
+  }
+
+  .modal-header {
+    padding: 0.85rem 1rem;
+  }
+
+  .modal-title {
+    font-size: 1rem;
+  }
+
+  .modal-content {
+    padding: 0.95rem 1rem;
+  }
+
+  .modal-footer {
+    padding: 0.75rem 1rem;
+  }
 }
 
 /* ==========================================================================
@@ -1262,3 +1307,60 @@
   color: #B91C1C;
   line-height: 1.4;
 }
+
+@media (max-width: 640px) {
+  .btn {
+    font-size: 0.82rem;
+    padding: 0.5rem 0.95rem;
+  }
+  .btn-sm {
+    font-size: 0.74rem;
+    padding: 0.35rem 0.65rem;
+  }
+  .btn-lg {
+    font-size: 0.9rem;
+    padding: 0.68rem 1.25rem;
+  }
+  .badge {
+    font-size: 0.68rem;
+    padding: 0.18rem 0.55rem;
+  }
+  .card-header {
+    padding: 1rem 1.15rem;
+  }
+  .card-body {
+    padding: 1rem 1.15rem;
+  }
+  .card-footer {
+    padding: 0.85rem 1.15rem;
+  }
+  .reui-timeline-item {
+    padding-left: 2.15rem;
+    padding-bottom: 1.25rem;
+  }
+  .reui-timeline-indicator {
+    left: 0.15rem;
+    width: 22px;
+    height: 22px;
+    font-size: 0.7rem;
+  }
+  .reui-timeline-separator {
+    left: calc(0.15rem + 10px);
+    top: 26px;
+    bottom: -2px;
+  }
+  .reui-timeline-title {
+    font-size: 0.86rem;
+  }
+  .reui-timeline-date {
+    font-size: 0.72rem;
+  }
+  .reui-timeline-meta {
+    font-size: 0.72rem;
+  }
+  .timeline-decline-box {
+    padding: 0.45rem 0.65rem;
+    font-size: 0.76rem;
+  }
+}
+
