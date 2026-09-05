@@ -167,7 +167,7 @@ export function AdminLogin() {
           </Link>
 
           <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-            Protected by /admins node
+            Firebase Auth Secured
           </span>
         </div>
 
@@ -188,12 +188,7 @@ export function AdminLogin() {
         >
           <Info size={16} color="var(--primary)" style={{ flexShrink: 0, marginTop: '1px' }} />
           <div>
-            <div>
-              <strong>Authorized Admin UID:</strong> <code style={{ wordBreak: 'break-all', color: 'var(--primary)' }}>gseLqYB6grVcqGLJvO8UA2q96d42</code>
-            </div>
-            <div style={{ marginTop: '0.25rem', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-              Configured in database and authorized for full control panel access.
-            </div>
+            <strong>Administrator Access:</strong> Any user registered in Firebase Authentication can sign in with their credentials to access the admin dashboard.
           </div>
         </div>
       </div>

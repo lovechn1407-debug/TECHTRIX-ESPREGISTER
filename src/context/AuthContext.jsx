@@ -5,51 +5,35 @@ import {
   signOut,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { ref, get } from 'firebase/database';
-import { auth, googleProvider, database } from '../lib/firebase';
+import { auth, googleProvider } from '../lib/firebase';
 
 const AuthContext = createContext(null);
 
-export const CONFIGURED_ADMIN_UIDS = [
-  'gseLqYB6grVcqGLJvO8UA2q96d42',
-];
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return localStorage.getItem('techtrix_admin_auth') === 'true';
+  });
   const [loading, setLoading] = useState(true);
 
-  // Check if UID is listed in /admins/{uid} or configured list
-  const checkAdminPrivilege = async (uid) => {
-    if (!uid) return false;
-    if (CONFIGURED_ADMIN_UIDS.includes(uid)) {
-      // Also ensure it is persisted in the database
-      try {
-        const adminRef = ref(database, `admins/${uid}`);
-        set(adminRef, true).catch(() => {});
-      } catch (e) {}
-      return true;
-    }
-    try {
-      const adminRef = ref(database, `admins/${uid}`);
-      const snapshot = await get(adminRef);
-      return snapshot.exists() && Boolean(snapshot.val());
-    } catch (err) {
-      console.error('Error checking admin permissions:', err);
-      return false;
-    }
-  };
-
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setLoading(true);
       if (currentUser) {
         setUser(currentUser);
-        const adminStatus = await checkAdminPrivilege(currentUser.uid);
-        setIsAdmin(adminStatus);
+        // If user logged in with password or previously authenticated as admin
+        const isPasswordProvider = currentUser.providerData?.some(
+          (p) => p.providerId === 'password'
+        );
+        const storedAdmin = localStorage.getItem('techtrix_admin_auth') === 'true';
+        if (isPasswordProvider || storedAdmin) {
+          setIsAdmin(true);
+          localStorage.setItem('techtrix_admin_auth', 'true');
+        }
       } else {
         setUser(null);
         setIsAdmin(false);
+        localStorage.removeItem('techtrix_admin_auth');
       }
       setLoading(false);
     });
@@ -68,22 +52,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Admin Email/Password login with strict /admins/{uid} verification
+  // Admin Email/Password login: any valid user in Firebase Authentication is an admin
   const adminLogin = async (email, password) => {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
-      const isAuthorized = await checkAdminPrivilege(cred.user.uid);
-      if (!isAuthorized) {
-        // Sign out immediately if not listed in /admins node
-        await signOut(auth);
-        setUser(null);
-        setIsAdmin(false);
-        const err = new Error('Access Denied: Your account does not have administrator privileges in TechTrix Esports.');
-        err.code = 'auth/unauthorized-admin';
-        throw err;
-      }
       setUser(cred.user);
       setIsAdmin(true);
+      localStorage.setItem('techtrix_admin_auth', 'true');
       return cred.user;
     } catch (error) {
       console.error('Admin Login failed:', error);
@@ -91,21 +66,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Admin Google Sign-In option
+  // Admin Google Sign-In option: signing in through admin portal confirms admin
   const adminGoogleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const isAuthorized = await checkAdminPrivilege(result.user.uid);
-      if (!isAuthorized) {
-        await signOut(auth);
-        setUser(null);
-        setIsAdmin(false);
-        const err = new Error(`Access Denied: Your Google account (${result.user.email || result.user.uid}) is not authorized as an administrator.`);
-        err.code = 'auth/unauthorized-admin';
-        throw err;
-      }
       setUser(result.user);
       setIsAdmin(true);
+      localStorage.setItem('techtrix_admin_auth', 'true');
       return result.user;
     } catch (error) {
       console.error('Admin Google Login failed:', error);
@@ -116,6 +83,7 @@ export function AuthProvider({ children }) {
   // Sign out
   const logout = async () => {
     try {
+      localStorage.removeItem('techtrix_admin_auth');
       await signOut(auth);
       setUser(null);
       setIsAdmin(false);
