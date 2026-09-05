@@ -48,14 +48,14 @@ export function Home() {
 
         <div className="hero-content">
           <div className="hero-badge">
-            <Sparkles size={16} />
-            <span>TechTrix Season 2026</span>
+            <Sparkles size={15} />
+            <span>Presented by E-Cell I.T.S &bull; TechTrix 2026</span>
           </div>
 
           <h1 className="hero-title">Register for Esports Tournaments</h1>
 
           <p className="hero-subtitle">
-            Compete. Conquer. Champion. Join elite battle royale tournaments with instant Free Fire player verification and seamless slot tracking.
+            Compete. Conquer. Champion. Join elite Free Fire MAX tournaments with instant player verification, dynamic brackets, and live slot tracking.
           </p>
 
           <div className="hero-cta-group">
@@ -109,8 +109,8 @@ export function Home() {
                   width: '42px',
                   height: '42px',
                   borderRadius: 'var(--radius-md)',
-                  background: 'rgba(108, 92, 231, 0.1)',
-                  color: 'var(--primary)',
+                  background: 'rgba(220, 38, 38, 0.12)',
+                  color: '#DC2626',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -122,7 +122,7 @@ export function Home() {
               <div>
                 <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Instant API Verification</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Live stats fetched directly from Free Fire servers
+                  Live stats verified directly from game servers
                 </div>
               </div>
             </div>
@@ -354,7 +354,7 @@ export function Home() {
                       <div className="card-actions-row">
                         <Button
                           variant="primary"
-                          size="sm"
+                          className="btn-fill-now"
                           disabled={closed || full}
                           onClick={() => navigate(`/register/${form.id}`)}
                         >
@@ -362,7 +362,7 @@ export function Home() {
                         </Button>
                         <Button
                           variant="secondary"
-                          size="sm"
+                          className="btn-card-details"
                           onClick={() => navigate(`/form/${form.id}`)}
                         >
                           Details

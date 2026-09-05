@@ -1,6 +1,8 @@
 import React from 'react';
-import { Trophy, Shield, Heart } from 'lucide-react';
+import { Shield, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import ecellLogo from '../../assets/ecell-logo.png';
+import techtrixLogo from '../../assets/techtrix-logo.png';
 
 export function Footer() {
   return (
@@ -24,18 +26,18 @@ export function Footer() {
             borderBottom: '1px solid var(--border)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div className="brand-icon-box" style={{ width: '32px', height: '32px' }}>
-              <Trophy size={16} strokeWidth={2.5} />
-            </div>
-            <div>
-              <div className="gradient-text" style={{ fontWeight: 800, fontSize: '1.2rem' }}>
-                TechTrix Esports
-              </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Premier tournament registration & verified player matchmaking
-              </p>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <img
+              src={ecellLogo}
+              alt="E-Cell I.T.S Engineering College"
+              style={{ height: '34px', width: 'auto', objectFit: 'contain' }}
+            />
+            <div style={{ width: '1px', height: '22px', background: 'var(--border)' }} />
+            <img
+              src={techtrixLogo}
+              alt="TechTrix Esports"
+              style={{ height: '26px', width: 'auto', objectFit: 'contain' }}
+            />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', fontSize: '0.88rem' }}>

@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import {
-  Trophy,
   LogIn,
   LogOut,
   ClipboardCheck,
@@ -14,6 +13,8 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import Button from '../ui/Button';
+import ecellLogo from '../../assets/ecell-logo.png';
+import techtrixLogo from '../../assets/techtrix-logo.png';
 
 export function ClientHeader() {
   const { user, isAdmin, loginWithGoogle, logout } = useAuth();
@@ -62,12 +63,19 @@ export function ClientHeader() {
   return (
     <header className="client-header">
       <div className="header-container">
-        {/* Brand Logo */}
-        <Link to="/" className="brand-logo">
-          <div className="brand-icon-box">
-            <Trophy size={20} strokeWidth={2.5} />
-          </div>
-          <span className="gradient-text">TechTrix Esports</span>
+        {/* Brand Logo with E-Cell and TechTrix */}
+        <Link to="/" className="brand-logo" aria-label="TechTrix Esports">
+          <img
+            src={ecellLogo}
+            alt="E-Cell I.T.S Engineering College"
+            className="header-ecell-logo"
+          />
+          <div className="header-brand-divider" aria-hidden="true" />
+          <img
+            src={techtrixLogo}
+            alt="TechTrix Esports"
+            className="header-techtrix-logo"
+          />
         </Link>
 
         {/* Navigation */}
