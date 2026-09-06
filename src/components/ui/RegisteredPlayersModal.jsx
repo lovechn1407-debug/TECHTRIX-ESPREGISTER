@@ -1,51 +1,119 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Users, X } from 'lucide-react';
+import { Search, Users, X, Check, Clock } from 'lucide-react';
 import { useFormSubmissions } from '../../hooks/useFirebase';
+
+/* Rank icons mapping to public/assets/ranks/ */
+export const RANK_ICONS = {
+  bronze: '/assets/ranks/bronze.webp',
+  silver: '/assets/ranks/silver.webp',
+  gold: '/assets/ranks/gold.webp',
+  platinum: '/assets/ranks/platinum.webp',
+  diamond: '/assets/ranks/diamond.webp',
+  heroic: '/assets/ranks/heroic.webp',
+  master: '/assets/ranks/master.webp',
+  grandmaster: '/assets/ranks/master.webp',
+};
+
+export function getRankIcon(rank) {
+  if (!rank) return RANK_ICONS.heroic;
+  const r = String(rank).toLowerCase().trim();
+  if (r.includes('grandmaster') || r.includes('master')) return RANK_ICONS.master;
+  if (r.includes('heroic')) return RANK_ICONS.heroic;
+  if (r.includes('diamond')) return RANK_ICONS.diamond;
+  if (r.includes('platinum')) return RANK_ICONS.platinum;
+  if (r.includes('gold')) return RANK_ICONS.gold;
+  if (r.includes('silver')) return RANK_ICONS.silver;
+  if (r.includes('bronze')) return RANK_ICONS.bronze;
+  return RANK_ICONS.heroic;
+}
+
+/* Render status text (pending, approved, declined) with tick/cross/pending icon and NO capsule border */
+export function renderStatusText(status) {
+  const norm = String(status || 'pending').toLowerCase().trim();
+  let color = '#FACC15'; // Amber
+  let label = 'Pending';
+  let Icon = Clock;
+
+  if (norm === 'approved') {
+    color = '#22C55E'; // Green
+    label = 'Approved';
+    Icon = Check;
+  } else if (norm === 'declined') {
+    color = '#EF4444'; // Red
+    label = 'Declined';
+    Icon = X;
+  }
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        fontSize: '0.76rem',
+        fontWeight: 700,
+        color: color,
+        textTransform: 'uppercase',
+        letterSpacing: '0.04em',
+        marginLeft: 'auto',
+        flexShrink: 0,
+        lineHeight: 1,
+      }}
+    >
+      <Icon size={14} strokeWidth={2.8} />
+      <span>{label}</span>
+    </span>
+  );
+}
 
 /* Sample fallback rosters for starter tournament forms */
 const SAMPLE_SOLO_PLAYERS = [
-  { uid: 's1', username: 'OP_VINCENZO', gameUid: '184729103', displayName: 'Heroic (Lvl 68)', role: 'Grandmaster' },
-  { uid: 's2', username: 'RAISTAR_99', gameUid: '294810294', displayName: 'Grandmaster (Lvl 74)', role: 'Grandmaster' },
-  { uid: 's3', username: 'AURA_DEADSHOT', gameUid: '103948271', displayName: 'Diamond IV (Lvl 56)', role: 'Heroic' },
-  { uid: 's4', username: 'TSG_JASH', gameUid: '401928374', displayName: 'Heroic (Lvl 62)', role: 'Heroic' },
-  { uid: 's5', username: 'MAFIA_BALWANT', gameUid: '582910482', displayName: 'Platinum III (Lvl 48)', role: 'Platinum' },
-  { uid: 's6', username: 'SK_SABBIR_BOSS', gameUid: '392817402', displayName: 'Grandmaster (Lvl 81)', role: 'Grandmaster' },
-  { uid: 's7', username: 'KILLER_FF_07', gameUid: '692019481', displayName: 'Diamond II (Lvl 52)', role: 'Diamond' },
-  { uid: 's8', username: 'TECH_SNIPER', gameUid: '918273645', displayName: 'Heroic (Lvl 60)', role: 'Heroic' },
+  { uid: 's1', username: 'OP_VINCENZO', gameUid: '184729103', rank: 'Grandmaster', status: 'approved' },
+  { uid: 's2', username: 'RAISTAR_99', gameUid: '294810294', rank: 'Heroic', status: 'approved' },
+  { uid: 's3', username: 'AURA_DEADSHOT', gameUid: '103948271', rank: 'Diamond', status: 'approved' },
+  { uid: 's4', username: 'TSG_JASH', gameUid: '401928374', rank: 'Platinum', status: 'pending' },
+  { uid: 's5', username: 'MAFIA_BALWANT', gameUid: '582910482', rank: 'Gold', status: 'approved' },
+  { uid: 's6', username: 'SK_SABBIR_BOSS', gameUid: '392817402', rank: 'Master', status: 'approved' },
+  { uid: 's7', username: 'KILLER_FF_07', gameUid: '692019481', rank: 'Silver', status: 'pending' },
+  { uid: 's8', username: 'TECH_SNIPER', gameUid: '918273645', rank: 'Bronze', status: 'declined' },
 ];
 
 const SAMPLE_DUO_PLAYERS = [
   {
     uid: 'd1',
-    username: 'AJAY_PRO',
+    teamName: 'TOTAL DESTRUCTION',
+    leaderName: 'AJAY_PRO',
     gameUid: '192837461',
-    displayName: 'TOTAL DESTRUCTION',
-    role: 'Captain',
+    rank: 'Grandmaster',
+    status: 'approved',
     teammates: [{ username: 'AMIT_BHAI', gameUid: '918273640' }],
   },
   {
     uid: 'd2',
-    username: 'MORTAL_FF',
+    teamName: 'SOUL DUO',
+    leaderName: 'MORTAL_FF',
     gameUid: '283746192',
-    displayName: 'SOUL DUO',
-    role: 'Captain',
+    rank: 'Master',
+    status: 'approved',
     teammates: [{ username: 'VIPER_GOD', gameUid: '384756201' }],
   },
   {
     uid: 'd3',
-    username: 'FROST_FIRE',
+    teamName: 'ORANGUTAN CLAN',
+    leaderName: 'FROST_FIRE',
     gameUid: '475869302',
-    displayName: 'ORANGUTAN CLAN',
-    role: 'Captain',
+    rank: 'Diamond',
+    status: 'pending',
     teammates: [{ username: 'BLAZE_KID', gameUid: '586970413' }],
   },
   {
     uid: 'd4',
-    username: 'ALPHA_HYDRA',
+    teamName: 'HYDRA FORCE',
+    leaderName: 'ALPHA_HYDRA',
     gameUid: '697081524',
-    displayName: 'HYDRA FORCE',
-    role: 'Captain',
+    rank: 'Heroic',
+    status: 'declined',
     teammates: [{ username: 'BETA_STORM', gameUid: '708192635' }],
   },
 ];
@@ -53,10 +121,11 @@ const SAMPLE_DUO_PLAYERS = [
 const SAMPLE_SQUAD_PLAYERS = [
   {
     uid: 'sq1',
-    username: 'NEYOOO_OP',
+    teamName: 'GODLIKE ESPORTS',
+    leaderName: 'NEYOOO_OP',
     gameUid: '102938475',
-    displayName: 'GODLIKE ESPORTS',
-    role: 'Squad Leader',
+    rank: 'Grandmaster',
+    status: 'approved',
     teammates: [
       { username: 'JONATHAN_FF', gameUid: '203948576' },
       { username: 'SHADOW_OP', gameUid: '304958687' },
@@ -65,10 +134,11 @@ const SAMPLE_SQUAD_PLAYERS = [
   },
   {
     uid: 'sq2',
-    username: 'PUNKER_99',
+    teamName: 'BLIND ESPORTS',
+    leaderName: 'PUNKER_99',
     gameUid: '516273849',
-    displayName: 'BLIND ESPORTS',
-    role: 'Captain',
+    rank: 'Master',
+    status: 'approved',
     teammates: [
       { username: 'SPY_HUNTER', gameUid: '627384950' },
       { username: 'DEVIL_MAX', gameUid: '738495061' },
@@ -77,10 +147,11 @@ const SAMPLE_SQUAD_PLAYERS = [
   },
   {
     uid: 'sq3',
-    username: 'KILLER_ELITE',
+    teamName: 'TEAM ELITE',
+    leaderName: 'KILLER_ELITE',
     gameUid: '950617283',
-    displayName: 'TEAM ELITE',
-    role: 'IGL',
+    rank: 'Heroic',
+    status: 'pending',
     teammates: [
       { username: 'ICONIC_BOY', gameUid: '162738495' },
       { username: 'PAHO_GOD', gameUid: '273849506' },
@@ -89,10 +160,11 @@ const SAMPLE_SQUAD_PLAYERS = [
   },
   {
     uid: 'sq4',
-    username: 'ORANG_LEADER',
+    teamName: 'ORANGUTAN SQUAD',
+    leaderName: 'ORANG_LEADER',
     gameUid: '482019382',
-    displayName: 'ORANGUTAN SQUAD',
-    role: 'Captain',
+    rank: 'Diamond',
+    status: 'declined',
     teammates: [
       { username: 'JOKER_FF', gameUid: '592019381' },
       { username: 'DEAD_EYE', gameUid: '602019380' },
@@ -143,25 +215,26 @@ export const RegisteredPlayersModal = ({
       return propPlayers;
     }
 
-    const validSubs = (submissions || []).filter((s) => s.status !== 'declined');
-
-    if (validSubs.length > 0) {
-      return validSubs.map((sub, idx) => {
+    if (submissions && submissions.length > 0) {
+      return submissions.map((sub, idx) => {
         const leader = sub.players?.[0] || {};
         const teammates = (sub.players || []).slice(1).map((tm) => ({
           username: tm.nickname || 'Teammate',
           gameUid: String(tm.uid || 'N/A'),
         }));
 
+        const playerRank = leader.rank || sub.minBRRank || 'Heroic';
+        const teamName = sub.teamName || (mode === 'Solo' ? leader.nickname : `Team #${idx + 1}`);
+        const leaderName = leader.nickname || sub.userName || `Player 1`;
+
         return {
           uid: sub.id || String(idx),
-          username: leader.nickname || sub.teamName || sub.userName || `Player #${idx + 1}`,
+          teamName: teamName,
+          leaderName: leaderName,
+          username: mode === 'Solo' ? leaderName : teamName,
           gameUid: String(leader.uid || 'N/A'),
-          displayName: sub.teamName || (leader.rank ? `${leader.rank} (Lvl ${leader.level || 1})` : null),
-          photoURL: leader.profileImage || sub.teamLogo || null,
-          role: sub.teamName
-            ? (mode === 'Solo' ? 'Player' : 'Captain')
-            : (leader.rank || 'Contender'),
+          rank: playerRank,
+          status: sub.status || 'pending',
           teammates,
         };
       });
@@ -184,13 +257,15 @@ export const RegisteredPlayersModal = ({
     const q = searchQuery.toLowerCase().trim();
     return players.filter((p) => {
       const matchUser = p.username?.toLowerCase().includes(q);
+      const matchTeam = p.teamName?.toLowerCase().includes(q);
+      const matchLeader = p.leaderName?.toLowerCase().includes(q);
       const matchUid = String(p.gameUid || '').toLowerCase().includes(q);
-      const matchDisplay = p.displayName?.toLowerCase().includes(q);
-      const matchRole = p.role?.toLowerCase().includes(q);
+      const matchRank = p.rank?.toLowerCase().includes(q);
+      const matchStatus = p.status?.toLowerCase().includes(q);
       const matchTeammate = p.teammates?.some(
         (t) => t.username?.toLowerCase().includes(q) || String(t.gameUid || '').toLowerCase().includes(q)
       );
-      return matchUser || matchUid || matchDisplay || matchRole || matchTeammate;
+      return matchUser || matchTeam || matchLeader || matchUid || matchRank || matchStatus || matchTeammate;
     });
   }, [players, searchQuery]);
 
@@ -316,7 +391,7 @@ export const RegisteredPlayersModal = ({
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
-                placeholder="Search player name, UID, or team..."
+                placeholder="Search player, team, UID, or status..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
@@ -401,18 +476,17 @@ export const RegisteredPlayersModal = ({
                       #{idx + 1}
                     </span>
                     <img
-                      src={player.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(player.username)}`}
-                      alt="avatar"
+                      src={getRankIcon(player.rank)}
+                      alt={player.rank || 'Rank'}
                       style={{
                         width: '38px',
                         height: '38px',
-                        borderRadius: '4px',
-                        objectFit: 'cover',
-                        border: '1px solid rgba(255,255,255,0.15)',
+                        objectFit: 'contain',
+                        filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.5))',
                         flexShrink: 0,
                       }}
                       onError={(e) => {
-                        e.currentTarget.src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${player.uid || idx}`;
+                        e.currentTarget.src = '/assets/ranks/heroic.webp';
                       }}
                     />
                     <div style={{ minWidth: 0 }}>
@@ -424,22 +498,7 @@ export const RegisteredPlayersModal = ({
                       </div>
                     </div>
                   </div>
-                  {player.displayName && (
-                    <span
-                      style={{
-                        fontSize: '0.72rem',
-                        color: '#94A3B8',
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        whiteSpace: 'nowrap',
-                        marginLeft: '8px',
-                      }}
-                    >
-                      {player.displayName}
-                    </span>
-                  )}
+                  {renderStatusText(player.status)}
                 </div>
               ))}
             </div>
@@ -491,47 +550,32 @@ export const RegisteredPlayersModal = ({
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                         <img
-                          src={team.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(team.username)}`}
-                          alt="avatar"
+                          src={getRankIcon(team.rank)}
+                          alt={team.rank || 'Rank'}
                           style={{
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '4px',
-                            objectFit: 'cover',
-                            border: '1px solid rgba(255,255,255,0.15)',
+                            width: '38px',
+                            height: '38px',
+                            objectFit: 'contain',
+                            filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.5))',
                             flexShrink: 0,
                           }}
                           onError={(e) => {
-                            e.currentTarget.src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${team.uid || idx}`;
+                            e.currentTarget.src = '/assets/ranks/heroic.webp';
                           }}
                         />
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: '0.88rem', fontWeight: 'bold', color: '#FACC15', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {team.username}
+                            {team.teamName || team.username}
                           </div>
-                          <div style={{ fontSize: '0.68rem', color: '#94A3B8', fontFamily: 'monospace' }}>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#FFFFFF', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {team.leaderName || team.username}
+                          </div>
+                          <div style={{ fontSize: '0.66rem', color: '#94A3B8', fontFamily: 'monospace', marginTop: '1px' }}>
                             UID: {team.gameUid}
                           </div>
                         </div>
                       </div>
-                      {team.role && (
-                        <span
-                          style={{
-                            border: '1px solid rgba(250, 204, 21, 0.6)',
-                            color: '#FACC15',
-                            padding: '2px 7px',
-                            borderRadius: '4px',
-                            fontSize: '0.62rem',
-                            fontWeight: 'bold',
-                            textTransform: 'uppercase',
-                            background: 'rgba(250, 204, 21, 0.05)',
-                            marginLeft: '8px',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {team.role}
-                        </span>
-                      )}
+                      {renderStatusText(team.status)}
                     </div>
 
                     {/* Teammate Row */}
@@ -589,51 +633,36 @@ export const RegisteredPlayersModal = ({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                      <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#FFFFFF', minWidth: '24px' }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#FFFFFF', minWidth: '24px', flexShrink: 0 }}>
                         #{idx + 1}
                       </span>
                       <img
-                        src={team.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(team.username)}`}
-                        alt="avatar"
+                        src={getRankIcon(team.rank)}
+                        alt={team.rank || 'Rank'}
                         style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '4px',
-                          objectFit: 'cover',
-                          border: '1px solid rgba(255,255,255,0.15)',
+                          width: '38px',
+                          height: '38px',
+                          objectFit: 'contain',
+                          filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.5))',
                           flexShrink: 0,
                         }}
                         onError={(e) => {
-                          e.currentTarget.src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${team.uid || idx}`;
+                          e.currentTarget.src = '/assets/ranks/heroic.webp';
                         }}
                       />
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: '0.88rem', fontWeight: 'bold', color: '#FACC15', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {team.username}
+                          {team.teamName || team.username}
                         </div>
-                        <div style={{ fontSize: '0.68rem', color: '#94A3B8', fontFamily: 'monospace' }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#FFFFFF', marginTop: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {team.leaderName || team.username}
+                        </div>
+                        <div style={{ fontSize: '0.66rem', color: '#94A3B8', fontFamily: 'monospace', marginTop: '1px' }}>
                           UID: {team.gameUid}
                         </div>
                       </div>
                     </div>
-                    {team.role && (
-                      <span
-                        style={{
-                          border: '1px solid rgba(250, 204, 21, 0.6)',
-                          color: '#FACC15',
-                          padding: '2px 7px',
-                          borderRadius: '4px',
-                          fontSize: '0.62rem',
-                          fontWeight: 'bold',
-                          textTransform: 'uppercase',
-                          background: 'rgba(250, 204, 21, 0.05)',
-                          marginLeft: '8px',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {team.role}
-                      </span>
-                    )}
+                    {renderStatusText(team.status)}
                   </div>
 
                   {/* Teammates 3-Column Grid (Slots 2, 3, 4) */}
