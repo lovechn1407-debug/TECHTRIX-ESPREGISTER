@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Trophy,
@@ -20,10 +20,12 @@ import { useForms } from '../../hooks/useFirebase';
 import { formatDate, isFormClosed, isSlotsFull } from '../../utils/helpers';
 import Button from '../../components/ui/Button';
 import Loading from '../../components/common/Loading';
+import RegisteredPlayersModal from '../../components/ui/RegisteredPlayersModal';
 
 export function Home() {
   const { forms, loading } = useForms();
   const navigate = useNavigate();
+  const [activeRosterForm, setActiveRosterForm] = useState(null);
 
   const scrollToTournaments = () => {
     const el = document.getElementById('tournaments-section');
@@ -351,7 +353,7 @@ export function Home() {
                         </div>
                       )}
 
-                      <div className="card-actions-row">
+                      <div className="card-actions-stack">
                         <Button
                           variant="primary"
                           className="btn-fill-now"
@@ -360,13 +362,24 @@ export function Home() {
                         >
                           {closed ? 'Closed' : full ? 'Full' : 'Fill Now'}
                         </Button>
-                        <Button
-                          variant="secondary"
-                          className="btn-card-details"
-                          onClick={() => navigate(`/form/${form.id}`)}
-                        >
-                          Details
-                        </Button>
+                        <div className="card-actions-secondary-row">
+                          <button
+                            type="button"
+                            className="btn-view-registrations"
+                            onClick={() => setActiveRosterForm(form)}
+                            title="View registered players and match roster"
+                          >
+                            <Users size={15} />
+                            <span>View Registrations</span>
+                          </button>
+                          <Button
+                            variant="secondary"
+                            className="btn-card-details"
+                            onClick={() => navigate(`/form/${form.id}`)}
+                          >
+                            Details
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -376,6 +389,13 @@ export function Home() {
           )}
         </div>
       </section>
+
+      {/* Registered Players Match Roster Modal */}
+      <RegisteredPlayersModal
+        isOpen={Boolean(activeRosterForm)}
+        onClose={() => setActiveRosterForm(null)}
+        form={activeRosterForm}
+      />
     </div>
   );
 }
