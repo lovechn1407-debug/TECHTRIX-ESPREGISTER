@@ -430,6 +430,16 @@
   margin-bottom: 0.75rem;
 }
 
+.card-game-logo {
+  height: 24px;
+  max-height: 24px;
+  width: auto;
+  max-width: 130px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+  display: block;
+}
+
 .card-game-badge {
   display: inline-flex;
   align-items: center;
@@ -617,6 +627,11 @@
     min-height: 42px !important;
     font-size: 0.82rem !important;
     border-radius: 6px !important;
+  }
+  .card-game-logo {
+    height: 20px;
+    max-height: 20px;
+    max-width: 110px;
   }
 }
 

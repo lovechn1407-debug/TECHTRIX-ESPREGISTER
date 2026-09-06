@@ -253,10 +253,11 @@ export function Home() {
 
                     <div className="card-content-wrap">
                       <div className="card-game-row">
-                        <span className="card-game-badge">
-                          <Flame size={13} />
-                          <span>{form.gameName || 'Free Fire'}</span>
-                        </span>
+                        <img
+                          src="/assets/images/free-fire-max-logo.png"
+                          alt={form.gameName || 'Free Fire MAX'}
+                          className="card-game-logo"
+                        />
 
                         {closed ? (
                           <span
