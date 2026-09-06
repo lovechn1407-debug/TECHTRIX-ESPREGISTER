@@ -19,10 +19,8 @@ export function Timeline({ history = [], currentStatus = 'pending', className = 
   const normalizedSteps = React.useMemo(() => {
     const list = Array.isArray(history) ? history : [];
     const submittedItem = list.find((h) => h.status === 'submitted') || list[0];
-    const reviewingItem = list.find((h) => h.status === 'reviewing');
-    const declinedItem = list.find((h) => h.status === 'declined');
-    const resubmittedItem = list.find((h) => h.status === 're-submitted');
-    const approvedItem = list.find((h) => h.status === 'approved');
+    const approvedItem = [...list].reverse().find((h) => h.status === 'approved');
+    const latestDeclineItem = [...list].reverse().find((h) => h.status === 'declined');
 
     const steps = [];
 
@@ -41,41 +39,53 @@ export function Timeline({ history = [], currentStatus = 'pending', className = 
       stepState: 'completed',
     });
 
-    // 2. Historical Decline & Resubmit (if occurred in timeline history)
-    if (declinedItem && resubmittedItem) {
-      steps.push({
-        id: 'declined-prev',
-        status: 'declined',
-        title: 'Correction Requested',
-        badgeText: 'Declined',
-        badgeVariant: 'destructive-light',
-        indicatorBg: '#EF4444',
-        indicatorText: '#FFFFFF',
-        icon: <X size={13} strokeWidth={2.8} />,
-        subtext: 'Organizer requested revisions to player roster or proofs',
-        timestamp: declinedItem.timestamp,
-        reason: declinedItem.reason,
-        stepState: 'completed',
-      });
+    // 2. Historical Decline & Resubmit cycles (if occurred previously)
+    const allDeclines = list.filter((h) => h.status === 'declined');
+    const allResubmits = list.filter((h) => h.status === 're-submitted');
+    const completedCyclesCount = allResubmits.length;
 
-      steps.push({
-        id: 're-submitted',
-        status: 're-submitted',
-        title: 'Updated & Re-submitted',
-        badgeText: 'Re-submitted',
-        badgeVariant: 'secondary-light',
-        indicatorBg: '#00CEC9',
-        indicatorText: '#FFFFFF',
-        icon: <RefreshCw size={13} strokeWidth={2.6} />,
-        subtext: 'Revised player roster re-submitted for evaluation',
-        timestamp: resubmittedItem.timestamp,
-        stepState: 'completed',
-      });
+    for (let i = 0; i < completedCyclesCount; i++) {
+      const pastDecline = allDeclines[i];
+      const pastResubmit = allResubmits[i];
+
+      if (pastDecline) {
+        steps.push({
+          id: `declined-hist-${i}`,
+          status: 'declined',
+          title: completedCyclesCount > 1 ? `Correction Requested (#${i + 1})` : 'Correction Requested',
+          badgeText: 'Declined',
+          badgeVariant: 'destructive-light',
+          indicatorBg: '#EF4444',
+          indicatorText: '#FFFFFF',
+          icon: <X size={13} strokeWidth={2.8} />,
+          subtext: 'Organizer requested revisions to player roster or proofs',
+          timestamp: pastDecline.timestamp,
+          reason: pastDecline.reason,
+          stepState: 'completed',
+        });
+      }
+
+      if (pastResubmit) {
+        steps.push({
+          id: `resubmitted-hist-${i}`,
+          status: 're-submitted',
+          title: completedCyclesCount > 1 ? `Updated & Re-submitted (#${i + 1})` : 'Updated & Re-submitted',
+          badgeText: 'Re-submitted',
+          badgeVariant: 'secondary-light',
+          indicatorBg: '#00CEC9',
+          indicatorText: '#FFFFFF',
+          icon: <RefreshCw size={13} strokeWidth={2.6} />,
+          subtext: 'Revised player roster re-submitted for evaluation',
+          timestamp: pastResubmit.timestamp,
+          stepState: 'completed',
+        });
+      }
     }
 
     // 3. Organizer Review Step
     const isCurrentlyReviewing = currentStatus === 'pending' || currentStatus === 'reviewing';
-    const isReviewCompleted = currentStatus === 'approved' || (currentStatus === 'declined' && !resubmittedItem);
+    const isReviewCompleted = currentStatus === 'approved' || currentStatus === 'declined';
+    const latestReviewItem = [...list].reverse().find((h) => h.status === 'reviewing');
 
     if (isCurrentlyReviewing) {
       steps.push({
@@ -89,7 +99,7 @@ export function Timeline({ history = [], currentStatus = 'pending', className = 
         indicatorClass: 'indicator-active',
         icon: <Clock size={13} strokeWidth={2.5} />,
         subtext: 'Document, player UID & rank proof verification in progress',
-        timestamp: reviewingItem?.timestamp || null,
+        timestamp: latestReviewItem?.timestamp || null,
         inProgressText: 'In progress &middot; Actively being reviewed',
         stepState: 'active',
       });
@@ -103,8 +113,8 @@ export function Timeline({ history = [], currentStatus = 'pending', className = 
         indicatorBg: '#10B981',
         indicatorText: '#FFFFFF',
         icon: <Check size={13} strokeWidth={2.8} />,
-        subtext: 'Player details and eligibility verified by tournament officials',
-        timestamp: reviewingItem?.timestamp || null,
+        subtext: 'Player details and eligibility evaluated by tournament officials',
+        timestamp: latestReviewItem?.timestamp || null,
         stepState: 'completed',
       });
     }
@@ -124,19 +134,20 @@ export function Timeline({ history = [], currentStatus = 'pending', className = 
         timestamp: approvedItem?.timestamp || Date.now(),
         stepState: 'completed',
       });
-    } else if (currentStatus === 'declined' && !resubmittedItem) {
+    } else if (currentStatus === 'declined') {
+      const activeDecline = allDeclines[completedCyclesCount] || latestDeclineItem;
       steps.push({
-        id: 'declined',
+        id: `declined-current-${activeDecline?.timestamp || Date.now()}`,
         status: 'declined',
-        title: 'Registration Declined',
+        title: completedCyclesCount > 0 ? `Registration Declined (Review #${completedCyclesCount + 1})` : 'Registration Declined',
         badgeText: 'Declined',
         badgeVariant: 'destructive-light',
         indicatorBg: '#EF4444',
         indicatorText: '#FFFFFF',
         icon: <X size={13} strokeWidth={2.8} />,
         subtext: 'Entry requires correction or does not meet criteria',
-        timestamp: declinedItem?.timestamp || Date.now(),
-        reason: declinedItem?.reason || null,
+        timestamp: activeDecline?.timestamp || Date.now(),
+        reason: activeDecline?.reason || null,
         stepState: 'declined',
       });
     } else if (isCurrentlyReviewing) {

@@ -30,6 +30,7 @@ export function CheckStatus() {
   const { userSubs, loading } = useUserSubmissions(user?.uid);
 
   const [selectedSub, setSelectedSub] = useState(null);
+  const activeSub = userSubs?.find((s) => s.id === selectedSub?.id) || selectedSub;
 
   if (loading) {
     return <Loading message="Loading your registrations..." fullPage />;
@@ -141,23 +142,23 @@ export function CheckStatus() {
       )}
 
       {/* Submission Details & Timeline Modal */}
-      {selectedSub && (
+      {activeSub && (
         <Modal
-          isOpen={Boolean(selectedSub)}
+          isOpen={Boolean(activeSub)}
           onClose={() => setSelectedSub(null)}
           title="Registration Details & Timeline"
           maxWidth="640px"
           footer={
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <div>
-                {selectedSub.status === 'declined' && (
+                {activeSub.status === 'declined' && (
                   <Button
                     variant="primary"
                     size="sm"
                     icon={Edit3}
                     onClick={() => {
-                      const formId = selectedSub.formId;
-                      const subId = selectedSub.id;
+                      const formId = activeSub.formId;
+                      const subId = activeSub.id;
                       setSelectedSub(null);
                       navigate(`/register/${formId}?editSubmissionId=${subId}`);
                     }}
@@ -188,16 +189,16 @@ export function CheckStatus() {
             >
               <div>
                 <h3 style={{ fontSize: '1.1rem', wordBreak: 'break-word' }}>
-                  {selectedSub.teamName || selectedSub.players?.[0]?.nickname}
+                  {activeSub.teamName || activeSub.players?.[0]?.nickname}
                 </h3>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  Submitted on {formatDateTime(selectedSub.submittedAt)}
+                  Submitted on {formatDateTime(activeSub.submittedAt)}
                 </span>
               </div>
               <Badge
-                status={selectedSub.status}
-                pulse={selectedSub.status === 'pending'}
-                label={selectedSub.status === 'pending' ? 'Under Review' : selectedSub.status}
+                status={activeSub.status}
+                pulse={activeSub.status === 'pending'}
+                label={activeSub.status === 'pending' ? 'Under Review' : activeSub.status}
               />
             </div>
 
@@ -207,18 +208,18 @@ export function CheckStatus() {
                 Status Progression
               </h4>
               <Timeline
-                history={selectedSub.statusHistory || []}
-                currentStatus={selectedSub.status}
+                history={activeSub.statusHistory || []}
+                currentStatus={activeSub.status}
               />
             </div>
 
             {/* Players Roster */}
             <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
               <h4 style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-                Registered Players ({selectedSub.players?.length || 0})
+                Registered Players ({activeSub.players?.length || 0})
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                {selectedSub.players?.map((pl, idx) => (
+                {activeSub.players?.map((pl, idx) => (
                   <div
                     key={idx}
                     style={{

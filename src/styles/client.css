@@ -529,7 +529,7 @@
   font-size: 0.95rem !important;
   font-weight: 700 !important;
   padding: 0 1.25rem !important;
-  border-radius: var(--radius-md) !important;
+  border-radius: 6px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -553,7 +553,7 @@
   font-size: 0.82rem;
   font-weight: 600;
   padding: 0 0.75rem;
-  border-radius: var(--radius-md);
+  border-radius: 6px !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -579,7 +579,7 @@
   font-size: 0.85rem !important;
   font-weight: 600 !important;
   padding: 0 0.85rem !important;
-  border-radius: var(--radius-md) !important;
+  border-radius: 6px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -602,6 +602,7 @@
     height: 46px !important;
     min-height: 46px !important;
     font-size: 0.92rem !important;
+    border-radius: 6px !important;
   }
   .btn-view-registrations {
     height: 42px;
@@ -609,11 +610,13 @@
     font-size: 0.76rem;
     padding: 0 0.5rem;
     gap: 0.35rem;
+    border-radius: 6px !important;
   }
   .btn-card-details {
     height: 42px !important;
     min-height: 42px !important;
     font-size: 0.82rem !important;
+    border-radius: 6px !important;
   }
 }
 
